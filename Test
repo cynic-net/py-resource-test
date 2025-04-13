@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+trap 'ec=$?; echo 1>&2 "INTERNAL ERROR: ec=$ec line=$LINENO cmd=$BASH_COMMAND";
+      exit $ec;' ERR
+
+die()  { ec="$1"; shift; echo 1>&2 "ERROR ($ec):" "$@"; exit $ec; }
+fail() { ec=$?; echo "FAILED exitcode=$ec ($(elapsed)s)"; exit $ec; }
+
+elapsed_start=$(date +%s)
+elapsed() { echo $(( $(date +%s) - $elapsed_start )); }
+
+####################################################################
+
+export PROJDIR=$(command cd "$(dirname "$0")" && pwd -P)
+. "$PROJDIR/pactivate" -q
+
+#   When we run python, the CWD is automatically added to sys.path,
+#   so we need to make sure it's consistent (and is not pylib/).
+command cd "$PROJDIR"
+
+pytest='pytest -q -p pytest_pt'
+
+echo '===== no library'
+$pytest client/nolib.pt "$@" || fail
+
+echo '===== unpacked library'
+PYTHONPATH="$PROJDIR/pylib" $pytest client/lib.pt "$@" || fail
+
+echo '===== ZIP-packed library'
+mkdir -p .build/
+(cd pylib && zip -q -r "$PROJDIR/.build/pylib.zip" .) || fail
+PYTHONPATH="$PROJDIR/.build/pylib.zip" $pytest client/lib.pt "$@" || fail
+
+####################################################################
+
+echo "OK ($(elapsed)s)"

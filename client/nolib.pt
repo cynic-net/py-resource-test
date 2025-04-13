@@ -1,0 +1,13 @@
+''' Test that we do not have our library available.
+    This ensures that in a "clean" environment we do not accidentally have
+    the library somehow being made available anyway, so that when we do
+    make it available we know exactly what form (unpacked, ZIP file, etc.)
+    we're using.
+'''
+
+import pytest
+
+def test_import_fails():
+    with pytest.raises(ModuleNotFoundError) as ex:
+        import subject
+    assert ex.match('subject')
