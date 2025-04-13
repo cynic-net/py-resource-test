@@ -1,6 +1,8 @@
 ' Test the behaviour of the library of which we are a client. '
 
 from importlib_resources  import files as resfiles
+import pytest
+
 
 def qualrepr(obj):
     typ = type(obj)
@@ -31,3 +33,26 @@ def test_show_resource_components():
     print('  child:', qualrepr(res.joinpath('textfile')))
     print(' parent:', qualrepr(res.parent))
     print('parent²:', qualrepr(res.parent.parent))
+
+def test_upward_traverse_1():
+    ''' Demonstrate that so long as we stay within the "library," i.e.
+        the empty-named root package of the tree containing the packages
+        for this library, we can traverse up and then down again.
+    '''
+    import subject
+    root = resfiles(subject)
+    res  = root.parent.joinpath('otherlib/textfile')
+    assert 'Otherlib.\n' == res.read_text()
+
+def test_upward_traverse_2():
+    ''' Demonstrate that when we traverse "out" of the library, we no
+        longer can count on being able to traverse back into it.
+    '''
+    import subject
+    root = resfiles(subject)
+    res = root.parent.parent.joinpath('pylib/otherlib/textfile')
+    if '.zip' not in str(root):
+        assert 'Otherlib.\n' == res.read_text()
+    else:
+        with pytest.raises(FileNotFoundError):
+            assert 'Otherlib.\n' == res.read_text()
