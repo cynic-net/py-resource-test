@@ -12,6 +12,11 @@ elapsed() { echo $(( $(date +%s) - $elapsed_start )); }
 ####################################################################
 
 export PROJDIR=$(command cd "$(dirname "$0")" && pwd -P)
+while [[ $# -gt 0 ]]; do case "$1" in
+    -c|-C)  shift; rm -rf $PROJDIR/.build/;;    # valid only as first param
+    *)      break;;
+esac; done
+
 . "$PROJDIR/pactivate" -q
 
 #   When we run python, the CWD is automatically added to sys.path,
