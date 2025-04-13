@@ -25,13 +25,13 @@ command cd "$PROJDIR"
 
 pytest='pytest -q -p pytest_pt'
 
-echo '===== no library'
+echo '━━━━━━━━━━ ▶ no library'
 $pytest client/nolib.pt "$@" || fail
 
-echo '===== unpacked library'
+echo '━━━━━━━━━━  ▶ unpacked library'
 PYTHONPATH="$PROJDIR/pylib" $pytest client/lib.pt "$@" || fail
 
-echo '===== ZIP-packed library'
+echo '━━━━━━━━━━  ▶ ZIP-packed library'
 mkdir -p .build/
 (cd pylib && zip -q -r "$PROJDIR/.build/pylib.zip" .) || fail
 PYTHONPATH="$PROJDIR/.build/pylib.zip" $pytest client/lib.pt "$@" || fail
