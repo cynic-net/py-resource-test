@@ -114,6 +114,59 @@ The following functions do not need to extract anything to the filesystem:
   `iterdir()`.
 
 
+Testing Command-line Programs
+-----------------------------
+
+Command-line programs that take arguments of files to read can be more
+quickly tested by using input files stored as resources without either
+extracting the resources to the filesystem or starting a subprocess to run
+the program.
+
+It's generally advisable to avoid using global variables in modules related
+to these programs, especially if you call them more than once or also unit
+test any of these modules, since these will not be reset to their original
+values at module load time.
+
+The standard pattern is to provide a `main()` function for your program
+that takes optional parameters to override the arguments and file handles
+for any files you need to read:
+
+    def main(argv1=None, input_override=None):
+        args = parseargs(argv1)
+        ...
+        if input_override is not None:
+            f = input_override
+        elif args.input == '-':
+            f = sys.stdin.buffer
+        else:
+            try:
+                f = open(args.input, 'rb')
+            except FileNotFoundError as ex:
+                print(str(ex))
+                sys.exit(1)
+
+    def parseargs(argv1):   # `None` to use `sys.argv[1:]`
+        p = ArgumentParser()
+        ...
+        return p.parse_args(argv1)
+
+This can then be called from the tests with:
+
+    def test_command_line_program(capsys):
+        main(argv1=['somefile'],
+            input_override=resfiles().joinpath('somefile').open('rb'))
+        stdout, stderr = capsys.readouterr()
+        assert ('expected output', 'expected err') == (stdout, stderr)
+
+The command line program itself, built by the distribution packaging
+system, calls `main()` with no parameters, thus using `sys.argv[1:]` and
+opening the filename given on the command line. This is usually configured
+in `pyproject.toml`:
+
+    [project.scripts]
+    myprogram = 'mypackage.cli.myprogram:main'
+
+
 
 <!-------------------------------------------------------------------->
 [`as_file()`]: https://docs.python.org/3/library/importlib.resources.html#importlib.resources.as_file
